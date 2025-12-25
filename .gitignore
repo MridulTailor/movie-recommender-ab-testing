@@ -24,7 +24,7 @@ MANIFEST
 
 # Pipenv
 .venv
-Pipfile.lock
+
 
 # Jupyter Notebook
 .ipynb_checkpoints
