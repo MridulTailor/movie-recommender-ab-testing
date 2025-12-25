@@ -15,7 +15,7 @@ COPY Pipfile Pipfile.lock /app/
 
 # Install dependencies via pipenv
 # --system flag installs packages into the system python, avoiding the need for a virtualenv in the container
-RUN pipenv install --system --deploy
+RUN pipenv sync --system
 
 # Copy the current directory contents into the container at /app
 COPY . /app

@@ -28,7 +28,7 @@ jobs:
         
     - name: Install dependencies
       run: |
-        pipenv install --dev --system --deploy
+        pipenv sync --dev --system
         
     - name: Run tests
       # We use python -m pytest to ensure the current directory is in sys.path
