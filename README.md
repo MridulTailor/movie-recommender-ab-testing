@@ -14,7 +14,7 @@ A production-grade movie recommendation system demonstrating Collaborative Filte
 - **Interactive Dashboard**: Streamlit app for exploring recommendations and running live experiment simulations.
 
 ## 🛠️ Tech Stack
-- **Python 3.10+** (Pipenv)
+- **Python 3.13+** (Pipenv)
 - **ML**: Scikit-Learn (TruncatedSVD), NumPy, Pandas
 - **Stats**: SciPy, Statsmodels
 - **App**: Streamlit, Plotly
