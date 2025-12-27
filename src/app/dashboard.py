@@ -12,6 +12,7 @@ from src.models import BaseRecommender, PopularityRecommender, SVDRecommender
 from src.experiment.ab_test import Simulator, ExperimentEngine
 from src.experiment.analysis import analyze_ab_test
 from sklearn.model_selection import train_test_split
+from surprise import accuracy
 
 # Page Config
 st.set_page_config(page_title="MovieCube A/B Test Platform", layout="wide")
@@ -52,6 +53,18 @@ if page == "User View (Simulator)":
     group = engine.assign_bucket(user_id)
     
     st.info(f"User {user_id} is assigned to group: **{group.upper()}**")
+
+    # User History Feature
+    st.subheader("User History (Rated 4.0+)")
+    user_history = st.session_state['train_df'][
+        (st.session_state['train_df']['userId'] == user_id) & 
+        (st.session_state['train_df']['rating'] >= 4.0)
+    ].sort_values("rating", ascending=False).head(5)
+    
+    if not user_history.empty:
+        st.table(user_history[['title', 'rating']])
+    else:
+        st.caption("No highly rated movies found in training history for this user.")
     
     if st.button("Get Recommendations"):
         if group == "control":
@@ -77,13 +90,18 @@ elif page == "Admin Dashboard (A/B Results)":
     
     st.markdown("Run a full-scale simulation on the held-out Test Set to measure recommender performance.")
     
-    if st.button("Run Experiment Simulation"):
+    start_sim = st.button("Run Experiment Simulation")
+    
+    # Configurable Sandbox
+    sample_size = st.slider("Simulation Sample Size (Users from Test Set)", min_value=100, max_value=2000, value=500, step=100)
+    
+    if start_sim:
         with st.spinner("Simulating user visits..."):
             test_users = st.session_state['test_df']['userId'].unique()
             # Sample for speed if needed
-            if len(test_users) > 500:
-                test_users = test_users[:500]
-                st.warning(f"Simulating on a subset of {len(test_users)} users for speed.")
+            if len(test_users) > sample_size:
+                test_users = test_users[:sample_size]
+                st.warning(f"Simulating on a subset of {len(test_users)} users (Adjust slider to change).")
             
             sim = Simulator(st.session_state['test_df'])
             results = sim.run_simulation(
@@ -93,6 +111,12 @@ elif page == "Admin Dashboard (A/B Results)":
             )
             
             st.session_state['sim_results'] = results
+            
+            # Calculate RMSE for SVD (Treatment)
+            # We predict on the specific test set for these users to get a technical metric
+            # Note: Simulator results track 'conversion', but RMSE tracks 'rating prediction accuracy'
+            st.session_state['treatment_rmse'] = st.session_state['treatment_model'].evaluate(st.session_state['test_df'])['rmse']
+            
             st.success("Simulation Complete!")
             
     if 'sim_results' in st.session_state:
@@ -127,3 +151,11 @@ elif page == "Admin Dashboard (A/B Results)":
             st.success(f"Result is Significant! (p-value = {pval:.4f})")
         else:
             st.error(f"Result is NOT Significant. (p-value = {pval:.4f})")
+            
+        # 4. Model Accuracy Metrics
+        st.divider()
+        st.subheader("Model Diagnostic Metrics")
+        if 'treatment_rmse' in st.session_state:
+            st.metric("SVD Model RMSE (Test Set)", f"{st.session_state['treatment_rmse']:.4f}", help="Lower is better. Measures rating prediction error.")
+        else:
+            st.info("Run simulation to calculate RMSE.")
