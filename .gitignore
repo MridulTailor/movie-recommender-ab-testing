@@ -22,10 +22,6 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Pipenv
-.venv
-
-
 # Jupyter Notebook
 .ipynb_checkpoints
 
@@ -42,3 +38,7 @@ MANIFEST
 
 # Mac
 .DS_Store
+
+# Virtual Environment
+.venv
+

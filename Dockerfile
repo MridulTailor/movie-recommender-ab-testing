@@ -1,21 +1,17 @@
 # Use an official Python runtime as a parent image
-FROM python:3.13-slim
+FROM python:3.11-slim
 
 # Set the working directory in the container
 WORKDIR /app
 
-# Install system dependencies (if any)
-# RUN apt-get update && apt-get install -y --no-install-recommends gcc && rm -rf /var/lib/apt/lists/*
+# Install system dependencies (needed for compilation usually)
+RUN apt-get update && apt-get install -y --no-install-recommends gcc build-essential && rm -rf /var/lib/apt/lists/*
 
-# Install pipenv
-RUN pip install pipenv
+# Copy requirements file
+COPY requirements.txt /app/
 
-# Copy the Pipfile and Pipfile.lock into the container
-COPY Pipfile Pipfile.lock /app/
-
-# Install dependencies via pipenv
-# --system flag installs packages into the system python, avoiding the need for a virtualenv in the container
-RUN pipenv sync --system
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the current directory contents into the container at /app
 COPY . /app

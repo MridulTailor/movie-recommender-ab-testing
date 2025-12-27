@@ -1,34 +1,7 @@
-from abc import ABC, abstractmethod
 import pandas as pd
 import numpy as np
 from sklearn.decomposition import TruncatedSVD
-from sklearn.neighbors import NearestNeighbors
-
-class BaseRecommender(ABC):
-    @abstractmethod
-    def fit(self, df: pd.DataFrame):
-        """Train the recommender on the given DataFrame."""
-        pass
-
-    @abstractmethod
-    def recommend(self, user_id: int, n: int = 10) -> list[int]:
-        """Return a list of top-n movie IDs to recommend."""
-        pass
-
-class PopularityRecommender(BaseRecommender):
-    """
-    Recommends the most popular movies (highest number of ratings) to everyone.
-    Good baseline for Cold Start.
-    """
-    def __init__(self):
-        self.popular_movies = []
-
-    def fit(self, df: pd.DataFrame):
-        # Count ratings per movie
-        self.popular_movies = df.groupby('movieId').size().sort_values(ascending=False).index.tolist()
-
-    def recommend(self, user_id: int, n: int = 10) -> list[int]:
-        return self.popular_movies[:n]
+from .base import BaseRecommender
 
 class SVDRecommender(BaseRecommender):
     """
@@ -80,18 +53,3 @@ class SVDRecommender(BaseRecommender):
         # Map back to movieId
         top_movie_ids = [self.movie_ids[i] for i in top_indices[:n]]
         return top_movie_ids
-
-if __name__ == "__main__":
-    # Test
-    from src.data.loader import get_merged_data
-    df = get_merged_data()
-    
-    print("Training Popularity Model...")
-    pop = PopularityRecommender()
-    pop.fit(df)
-    print("Popularity Recs:", pop.recommend(1)[:5])
-    
-    print("Training SVD Model...")
-    svd = SVDRecommender(n_components=20)
-    svd.fit(df)
-    print("SVD Recs for User 1:", svd.recommend(1)[:5])

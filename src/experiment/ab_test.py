@@ -3,7 +3,13 @@ import numpy as np
 import pandas as pd
 from typing import Literal
 
-from src.models.recommender import BaseRecommender, PopularityRecommender, SVDRecommender
+from src.models import (
+    BaseRecommender, 
+    PopularityRecommender, 
+    SVDRecommender, 
+    SurpriseRecommender, 
+    NeuralCFRecommender
+)
 
 class ExperimentEngine:
     def __init__(self, salt: str = "movie_experiment_v1"):
@@ -90,22 +96,61 @@ if __name__ == "__main__":
     train_df, test_df = train_test_split(full_df, test_size=0.2, random_state=42)
     
     # 3. Train Models on TRAIN set
+    # 3. Train Models
     print("Training Control (Popularity)...")
     control_model = PopularityRecommender()
     control_model.fit(train_df)
     
-    print("Training Treatment (SVD)...")
-    treatment_model = SVDRecommender(n_components=20)
-    treatment_model.fit(train_df)
+    print("Training Treatment 1 (SVD)...")
+    svd_model = SVDRecommender(n_components=20)
+    svd_model.fit(train_df)
     
-    # 4. Simulate on TEST set users (using Test set as 'Future Truth')
+    print("Training Treatment 2 (Surprise SVD)...")
+    surprise_model = SurpriseRecommender(n_factors=20, n_epochs=20)
+    surprise_model.fit(train_df)
+    
+    # print("Training Treatment 3 (NeuralCF) [Experimental]...")
+    # ncf_model = NeuralCFRecommender(epochs=1) # Keep epochs low for demo speed
+    # ncf_model.fit(train_df)
+    
+    # 4. Simulate
+    # To support multiple treatments, we need a slight tweak to the engine or just run separate sims.
+    # For simplicity, let's run separate simulations for each "Treatment vs Control" pair or just comparing raw performance on the test set.
+    
+    # Let's compare all on the same test users (Offline Evaluation style) rather than strictly A/B split for this demo script
+    # This allows direct metric comparison.
+    
     test_users = test_df['userId'].unique()
     sim = Simulator(test_df)
     
-    results = sim.run_simulation(test_users, control_model, treatment_model)
+    print("\nRunning Evaluation...")
     
-    # 5. Quick Analysis
-    print("\n--- A/B Test Results ---")
-    summary = results.groupby("group")['converted'].agg(['count', 'mean'])
-    summary.columns = ['visitors', 'conversion_rate']
-    print(summary)
+    # We will cheat standard A/B logic here to show a leaderboard
+    results = []
+    
+    # Helper to evaluate a model
+    def evaluate(model, name):
+        hits = 0
+        total_recs = 0
+        for uid in test_users:
+            recs = model.recommend(uid, n=5)
+            # Check overlap with Ground Truth (Test Set)
+            # Precision@K style check
+            user_truth = test_df[(test_df['userId'] == uid) & (test_df['rating'] >= 4.0)]['movieId'].values
+            
+            for movie_id in recs:
+                if movie_id in user_truth:
+                    hits += 1
+            total_recs += len(recs)
+        
+        precision = hits / total_recs if total_recs > 0 else 0
+        return {"model": name, "precision_at_5": precision}
+
+    results.append(evaluate(control_model, "Popularity"))
+    results.append(evaluate(svd_model, "SVD"))
+    results.append(evaluate(surprise_model, "Surprise"))
+    # results.append(evaluate(ncf_model, "NeuralCF"))
+    
+    print("\n--- Model Leaderboard (Precision@5) ---")
+    results_df = pd.DataFrame(results).sort_values(by="precision_at_5", ascending=False)
+    print(results_df)

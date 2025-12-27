@@ -1,0 +1,15 @@
+pandas
+numpy<2.0
+scikit-learn
+requests
+fastapi
+uvicorn
+streamlit
+plotly
+scipy
+statsmodels
+notebook
+jupyter
+pytest
+scikit-surprise
+torch

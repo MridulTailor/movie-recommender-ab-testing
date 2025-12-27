@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 from src.data.loader import get_merged_data
-from src.models.recommender import PopularityRecommender, SVDRecommender
+from src.models import BaseRecommender, PopularityRecommender, SVDRecommender
 from src.experiment.ab_test import Simulator, ExperimentEngine
 from src.experiment.analysis import analyze_ab_test
 from sklearn.model_selection import train_test_split
